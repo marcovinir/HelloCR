@@ -106,6 +106,13 @@ class SesionControllerTest extends PruebaIntegracion {
     }
 
     @Test
+    void unIdentificadorGiganteSeRechazaAntesDeContarComoIntento() throws Exception {
+        login("a".repeat(256), CLAVE)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errores.identificador").value("Ese correo o nombre de usuario es demasiado largo."));
+    }
+
+    @Test
     void unJsonMalFormadoEs400() throws Exception {
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{\"identificador\": "))
                 .andExpect(status().isBadRequest())
