@@ -63,6 +63,14 @@ public class LimiteIntentosLogin {
         registros.values().removeIf(registro -> !ahora.isBefore(registro.venceEn()));
     }
 
+    /**
+     * Al restablecer la contraseña, la persona demostró que es dueña del correo: se levantan los bloqueos
+     * de su cuenta, tanto por correo como por @usuario y desde cualquier IP.
+     */
+    public void olvidarCuenta(String correo, String nombreUsuario) {
+        registros.keySet().removeIf(clave -> clave.startsWith(correo + "|") || clave.startsWith(nombreUsuario + "|"));
+    }
+
     /** Solo para tests: el estado vive en memoria y se comparte entre tests del mismo contexto. */
     public void olvidarTodo() {
         registros.clear();

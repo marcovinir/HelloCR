@@ -16,15 +16,18 @@ public class RecuperacionService {
     private final CorreosDeCuenta correos;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokens;
+    private final LimiteIntentosLogin limiteIntentos;
     private final Clock clock;
 
     public RecuperacionService(UsuarioRepository usuarios, TokenCorreoService tokensCorreo, CorreosDeCuenta correos,
-            PasswordEncoder passwordEncoder, RefreshTokenService refreshTokens, Clock clock) {
+            PasswordEncoder passwordEncoder, RefreshTokenService refreshTokens, LimiteIntentosLogin limiteIntentos,
+            Clock clock) {
         this.usuarios = usuarios;
         this.tokensCorreo = tokensCorreo;
         this.correos = correos;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokens = refreshTokens;
+        this.limiteIntentos = limiteIntentos;
         this.clock = clock;
     }
 
@@ -39,7 +42,8 @@ public class RecuperacionService {
 
     /**
      * La contraseña se valida antes de consumir el token, para no gastar el enlace con un error de tipeo.
-     * Abrir el enlace prueba que la persona es dueña del correo, así que también lo verifica.
+     * Abrir el enlace prueba que la persona es dueña del correo, así que también lo verifica y levanta el
+     * bloqueo por intentos fallidos (si no, seguiría sin poder entrar con la contraseña nueva).
      */
     @Transactional
     public void restablecer(SolicitudRestablecer solicitud) {
@@ -48,5 +52,6 @@ public class RecuperacionService {
         usuario.cambiarContrasena(passwordEncoder.encode(solicitud.contrasenaNueva()));
         usuario.verificarCorreo(clock.instant());
         refreshTokens.revocarTodos(usuario.getId());
+        limiteIntentos.olvidarCuenta(usuario.getCorreo(), usuario.getNombreUsuario());
     }
 }

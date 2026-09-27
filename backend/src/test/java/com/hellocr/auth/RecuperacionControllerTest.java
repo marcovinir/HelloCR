@@ -83,6 +83,20 @@ class RecuperacionControllerTest extends PruebaIntegracion {
     }
 
     @Test
+    void restablecerLevantaElBloqueoDeLogin() throws Exception {
+        crearUsuario("ana");
+        for (int i = 0; i < 5; i++) {
+            login("ana", "mala-clave").andExpect(status().isUnauthorized());
+        }
+        login("ana", CLAVE).andExpect(status().isTooManyRequests());
+        recuperar("ana@correo.cr");
+
+        restablecer(tokenDelCorreo(), NUEVA).andExpect(status().isNoContent());
+
+        login("ana", NUEVA).andExpect(status().isOk());
+    }
+
+    @Test
     void restablecerVerificaUnaCuentaSinVerificar() throws Exception {
         crearUsuarioSinVerificar("ana");
         recuperar("ana@correo.cr");

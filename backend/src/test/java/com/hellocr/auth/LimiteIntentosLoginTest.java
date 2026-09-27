@@ -80,6 +80,21 @@ class LimiteIntentosLoginTest {
         assertThat(limite.registrados()).isZero();
     }
 
+    @Test
+    void olvidarUnaCuentaLevantaSusBloqueosPorCorreoYPorUsuarioSinTocarOtras() {
+        fallar(5);
+        for (int i = 0; i < 5; i++) {
+            limite.registrarFallo("ana@correo.cr|10.0.0.2");
+            limite.registrarFallo("anabel|127.0.0.1");
+        }
+
+        limite.olvidarCuenta("ana@correo.cr", "ana");
+
+        assertThatCode(() -> limite.verificar(CLAVE)).doesNotThrowAnyException();
+        assertThatCode(() -> limite.verificar("ana@correo.cr|10.0.0.2")).doesNotThrowAnyException();
+        assertThatThrownBy(() -> limite.verificar("anabel|127.0.0.1")).isInstanceOf(ErrorNegocio.class);
+    }
+
     private void fallar(int veces) {
         for (int i = 0; i < veces; i++) {
             limite.registrarFallo(CLAVE);
