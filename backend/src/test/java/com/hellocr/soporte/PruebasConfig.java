@@ -18,6 +18,13 @@ public class PruebasConfig {
         return new RelojAjustable(ZoneId.of(zonaHoraria));
     }
 
+    /** Reemplaza al enviador de la consola: los tests leen los correos del buzón. */
+    @Bean
+    @Primary
+    public BuzonPrueba buzonPrueba() {
+        return new BuzonPrueba();
+    }
+
     /** Para que las aserciones de MockMvc lean bien las tildes de las respuestas. */
     @Bean
     public MockMvcBuilderCustomizer respuestasEnUtf8() {

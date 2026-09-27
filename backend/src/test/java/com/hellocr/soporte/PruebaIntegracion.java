@@ -23,7 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** Base de los tests de integración: contexto completo, base hellocr_test limpia y reloj fijo. */
+/** Base de los tests de integración: contexto completo, base hellocr_test limpia, reloj fijo y buzón vacío. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -42,6 +42,8 @@ public abstract class PruebaIntegracion {
     @Autowired
     protected RelojAjustable reloj;
     @Autowired
+    protected BuzonPrueba buzon;
+    @Autowired
     private UsuarioRepository usuarios;
     @Autowired
     private GeneradorCodigos codigos;
@@ -49,6 +51,7 @@ public abstract class PruebaIntegracion {
     @BeforeEach
     void reiniciarEstado() {
         reloj.reiniciar();
+        buzon.vaciar();
         jdbc.execute("TRUNCATE " + TABLAS + " RESTART IDENTITY CASCADE");
     }
 
