@@ -1,0 +1,31 @@
+# Copiá este archivo como application-local.yml (git lo ignora) y cambiá los valores.
+spring:
+  datasource:
+    username: hellocr
+    password: hellocr
+
+app:
+  jwt:
+    # Generá uno con: openssl rand -base64 48
+    secreto: cambia-esto-por-un-secreto-largo-de-al-menos-32-caracteres
+    # En desarrollo el frontend corre en http://localhost, sin HTTPS.
+    cookie-segura: false
+  correo:
+    # consola: los correos se escriben en el log. smtp: se envían de verdad (ver abajo).
+    modo: consola
+
+# Para probar el envío real con Gmail (requiere verificación en dos pasos y una contraseña de aplicación),
+# descomentá y completá esto, y cambiá app.correo.modo a smtp:
+#
+# spring:
+#   mail:
+#     host: smtp.gmail.com
+#     port: 587
+#     username: tu-cuenta@gmail.com
+#     password: la-contraseña-de-aplicación
+#     properties:
+#       mail.smtp.auth: true
+#       mail.smtp.starttls.enable: true
+# app:
+#   correo:
+#     remitente: "HelloCR <tu-cuenta@gmail.com>"

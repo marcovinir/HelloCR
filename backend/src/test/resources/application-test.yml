@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hellocr_test
+    username: ${TEST_DB_USER:hellocr}
+    password: ${TEST_DB_PASSWORD:hellocr}
+
+app:
+  jwt:
+    secreto: secreto-solo-para-pruebas-con-mas-de-32-caracteres
+  correo:
+    asincrono: false

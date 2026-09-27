@@ -1,0 +1,11 @@
+# Configuración local con credenciales
+backend/src/main/resources/application-local.yml
+
+# Editores
+.idea/
+*.iml
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
