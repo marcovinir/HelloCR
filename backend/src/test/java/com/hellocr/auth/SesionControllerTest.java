@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.hellocr.soporte.PruebaIntegracion;
 import com.hellocr.soporte.SesionPrueba;
+import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -165,6 +166,15 @@ class SesionControllerTest extends PruebaIntegracion {
         mvc.perform(post("/api/auth/refresh"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.codigo").value("NO_AUTENTICADO"));
+    }
+
+    @Test
+    void unRefreshRechazadoBorraLaCookie() throws Exception {
+        mvc.perform(post("/api/auth/refresh").cookie(new Cookie("refresh_token", "inventado")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.codigo").value("NO_AUTENTICADO"))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, allOf(
+                        containsString("refresh_token=;"), containsString("Max-Age=0"))));
     }
 
     private ResultActions login(String identificador, String contrasena) throws Exception {

@@ -70,6 +70,19 @@ class RecuperacionControllerTest extends PruebaIntegracion {
     }
 
     @Test
+    void laCookieViejaDeOtroDispositivoNoCierraLaSesionNuevaDespuesDeRestablecer() throws Exception {
+        SesionPrueba pc = sesionDe("ana");
+        recuperar("ana@correo.cr");
+        restablecer(tokenDelCorreo(), NUEVA).andExpect(status().isNoContent());
+        SesionPrueba celular = SesionPrueba.de(login("ana", NUEVA).andExpect(status().isOk()).andReturn());
+        reloj.avanzar(Duration.ofSeconds(31));
+
+        mvc.perform(post("/api/auth/refresh").cookie(pc.cookie())).andExpect(status().isUnauthorized());
+
+        mvc.perform(post("/api/auth/refresh").cookie(celular.cookie())).andExpect(status().isOk());
+    }
+
+    @Test
     void restablecerVerificaUnaCuentaSinVerificar() throws Exception {
         crearUsuarioSinVerificar("ana");
         recuperar("ana@correo.cr");

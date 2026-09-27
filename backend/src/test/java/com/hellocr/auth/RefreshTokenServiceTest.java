@@ -103,6 +103,32 @@ class RefreshTokenServiceTest extends PruebaIntegracion {
     }
 
     @Test
+    void unTokenCerradoConLogoutNoProvocaUnaCascada() {
+        String cerrado = servicio.emitir(ana);
+        String otraSesion = servicio.emitir(ana);
+        servicio.revocar(cerrado);
+        reloj.avanzar(Duration.ofSeconds(31));
+
+        assertThatThrownBy(() -> servicio.rotar(cerrado)).satisfies(this::esSesionInvalida);
+
+        assertThat(servicio.rotar(otraSesion).nuevoToken()).isNotBlank();
+        assertThat(eventos.stream(SesionesRevocadas.class)).isEmpty();
+    }
+
+    @Test
+    void unTokenRevocadoPorUnCierreMasivoNoProvocaOtraCascada() {
+        String viejo = servicio.emitir(ana);
+        servicio.revocarTodos(ana.getId());
+        String nuevo = servicio.emitir(ana);
+        reloj.avanzar(Duration.ofSeconds(31));
+
+        assertThatThrownBy(() -> servicio.rotar(viejo)).satisfies(this::esSesionInvalida);
+
+        assertThat(servicio.rotar(nuevo).nuevoToken()).isNotBlank();
+        assertThat(eventos.stream(SesionesRevocadas.class)).hasSize(1);
+    }
+
+    @Test
     void revocarTodosCierraTodasLasSesionesYAvisa() {
         String sesionA = servicio.emitir(ana);
         String sesionB = servicio.emitir(ana);

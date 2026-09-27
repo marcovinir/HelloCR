@@ -1,9 +1,12 @@
 package com.hellocr.auth;
 
+import com.hellocr.comun.ApiErrorHandler;
+import com.hellocr.comun.ErrorNegocio;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,10 +32,18 @@ public class SesionController {
         return cookie.responder(HttpStatus.OK, sesiones.login(solicitud, http.getRemoteAddr()));
     }
 
+    /** Si el refresh se rechaza, también se borra la cookie: así el navegador no vuelve a presentar un token muerto. */
     @PostMapping("/refresh")
-    public ResponseEntity<RespuestaSesion> refrescar(
+    public ResponseEntity<?> refrescar(
             @CookieValue(name = CookieRefresh.NOMBRE, required = false) String refreshToken) {
-        return cookie.responder(HttpStatus.OK, sesiones.refrescar(refreshToken));
+        try {
+            return cookie.responder(HttpStatus.OK, sesiones.refrescar(refreshToken));
+        } catch (ErrorNegocio rechazo) {
+            return ResponseEntity.status(rechazo.codigo().estado())
+                    .header(HttpHeaders.SET_COOKIE, cookie.borrar())
+                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(ApiErrorHandler.problema(rechazo.codigo(), rechazo.getMessage()));
+        }
     }
 
     @PostMapping("/logout")

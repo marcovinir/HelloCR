@@ -33,6 +33,10 @@ public class RefreshToken {
     @Column(name = "revocado_en")
     private Instant revocadoEn;
 
+    /** Solo lo llena la rotación: distingue "lo cambiaron por uno nuevo" de "cerraron la sesión". */
+    @Column(name = "reemplazado_en")
+    private Instant reemplazadoEn;
+
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
@@ -60,11 +64,23 @@ public class RefreshToken {
         }
     }
 
+    /** La rotación lo cambió por uno nuevo. */
+    public void reemplazar(Instant ahora) {
+        if (revocadoEn == null) {
+            revocadoEn = ahora;
+            reemplazadoEn = ahora;
+        }
+    }
+
+    public boolean reemplazado() {
+        return reemplazadoEn != null;
+    }
+
     public Usuario getUsuario() {
         return usuario;
     }
 
-    public Instant getRevocadoEn() {
-        return revocadoEn;
+    public Instant getReemplazadoEn() {
+        return reemplazadoEn;
     }
 }

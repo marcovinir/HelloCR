@@ -21,8 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class RefreshTokenService {
 
     /**
-     * Si un token revocado se reusa dentro de este margen, se asume que dos pestañas refrescaron a la vez
-     * y solo se rechaza ese request. Pasado el margen, se trata como robo y se cierran todas las sesiones.
+     * Si un token ya reemplazado por la rotación se reusa dentro de este margen, se asume que dos pestañas
+     * refrescaron a la vez y solo se rechaza ese request. Pasado el margen, se trata como robo y se cierran
+     * todas las sesiones. Un token revocado por logout o por un cierre masivo solo se rechaza: si también
+     * provocara una cascada, dos dispositivos con cookies viejas se cerrarían la sesión uno al otro sin fin.
      */
     static final Duration GRACIA_REUTILIZACION = Duration.ofSeconds(30);
 
@@ -59,7 +61,7 @@ public class RefreshTokenService {
         Instant ahora = clock.instant();
         RefreshToken actual = buscar(token).orElseThrow(RefreshTokenService::sesionInvalida);
         if (actual.revocado()) {
-            if (actual.getRevocadoEn().plus(GRACIA_REUTILIZACION).isBefore(ahora)) {
+            if (actual.reemplazado() && actual.getReemplazadoEn().plus(GRACIA_REUTILIZACION).isBefore(ahora)) {
                 revocarTodos(actual.getUsuario().getId());
                 log.warn("Reutilización de refresh token: se cerraron las sesiones del usuario {}",
                         actual.getUsuario().getId());
@@ -69,7 +71,7 @@ public class RefreshTokenService {
         if (actual.vencido(ahora)) {
             throw sesionInvalida();
         }
-        actual.revocar(ahora);
+        actual.reemplazar(ahora);
         return new Rotacion(actual.getUsuario(), emitir(actual.getUsuario()));
     }
 
