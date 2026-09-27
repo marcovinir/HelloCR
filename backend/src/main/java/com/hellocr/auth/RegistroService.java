@@ -1,5 +1,6 @@
 package com.hellocr.auth;
 
+import com.hellocr.comun.ErrorNegocio;
 import com.hellocr.correo.CorreosDeCuenta;
 import com.hellocr.usuarios.ErroresUsuario;
 import com.hellocr.usuarios.GeneradorCodigos;
@@ -36,7 +37,8 @@ public class RegistroService {
 
     /**
      * Crea la cuenta sin verificar y envía el enlace. Si el correo pertenecía a una cuenta sin verificar,
-     * esa cuenta se reemplaza: así nadie puede bloquear un correo ajeno registrándose con él.
+     * esa cuenta se reemplaza: así nadie puede bloquear un correo ajeno registrándose con él. El reemplazo
+     * respeta la misma espera que el reenvío, para que registrarse en bucle no sirva para llenar un buzón.
      */
     @Transactional
     public RespuestaRegistro registrar(SolicitudRegistro solicitud) {
@@ -44,6 +46,13 @@ public class RegistroService {
         if (NombresReservados.contiene(solicitud.nombreUsuario())) {
             throw ErroresUsuario.nombreUsuarioReservado();
         }
+        usuarios.findByCorreo(solicitud.correo())
+                .filter(existente -> !existente.correoVerificado())
+                .map(existente -> tokensCorreo.esperaParaEmitir(existente, PropositoToken.VERIFICACION))
+                .filter(espera -> !espera.isZero())
+                .ifPresent(espera -> {
+                    throw ErrorNegocio.demasiadosIntentos("Ya te mandamos un correo hace poco.", espera);
+                });
         usuarios.borrarSinVerificarPorCorreo(solicitud.correo());
         if (usuarios.existsByCorreo(solicitud.correo())) {
             throw ErroresUsuario.correoEnUso();

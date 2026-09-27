@@ -39,10 +39,18 @@ public class TokenCorreoService {
     /** Evita mandar correos seguidos: exige app.correo.espera-reenvio desde el último del mismo propósito. */
     @Transactional(readOnly = true)
     public boolean puedeEmitir(Usuario usuario, PropositoToken proposito) {
+        return esperaParaEmitir(usuario, proposito).isZero();
+    }
+
+    /** Cuánto falta para poder mandar otro correo de ese propósito; cero si ya se puede. */
+    @Transactional(readOnly = true)
+    public Duration esperaParaEmitir(Usuario usuario, PropositoToken proposito) {
         Instant ahora = clock.instant();
         return tokens.findFirstByUsuario_IdAndPropositoOrderByCreadoEnDesc(usuario.getId(), proposito)
-                .map(ultimo -> !ahora.isBefore(ultimo.getCreadoEn().plus(propiedades.esperaReenvio())))
-                .orElse(true);
+                .map(ultimo -> ultimo.getCreadoEn().plus(propiedades.esperaReenvio()))
+                .filter(ahora::isBefore)
+                .map(desde -> Duration.between(ahora, desde))
+                .orElse(Duration.ZERO);
     }
 
     /** Marca el token como usado y devuelve su usuario. Llamar dentro de la transacción que lo va a modificar. */

@@ -1,5 +1,6 @@
 package com.hellocr.comun;
 
+import java.time.Duration;
 import java.util.Map;
 
 /** Error esperado de la aplicación: se convierte en una respuesta ProblemDetail con su código. */
@@ -25,6 +26,15 @@ public class ErrorNegocio extends RuntimeException {
     public static ErrorNegocio validacion(String campo, String mensaje) {
         return new ErrorNegocio(CodigoError.VALIDACION, "Hay datos inválidos.",
                 Map.of("errores", Map.of(campo, mensaje)));
+    }
+
+    /** 429 con Retry-After: "<motivo> Probá de nuevo en N minutos." */
+    public static ErrorNegocio demasiadosIntentos(String motivo, Duration falta) {
+        long segundos = Math.max(1, (falta.toMillis() + 999) / 1000);
+        long minutos = (segundos + 59) / 60;
+        String cuando = minutos == 1 ? "1 minuto" : minutos + " minutos";
+        return new ErrorNegocio(CodigoError.DEMASIADOS_INTENTOS, motivo + " Probá de nuevo en " + cuando + ".",
+                Map.of(REINTENTAR_EN_SEGUNDOS, segundos));
     }
 
     public CodigoError codigo() {

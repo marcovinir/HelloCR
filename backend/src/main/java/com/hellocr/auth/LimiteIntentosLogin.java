@@ -1,6 +1,5 @@
 package com.hellocr.auth;
 
-import com.hellocr.comun.CodigoError;
 import com.hellocr.comun.ErrorNegocio;
 import java.time.Clock;
 import java.time.Duration;
@@ -36,7 +35,8 @@ public class LimiteIntentosLogin {
         Instant ahora = clock.instant();
         Registro registro = registros.get(clave);
         if (registro != null && registro.bloqueado() && ahora.isBefore(registro.venceEn())) {
-            throw bloqueada(Duration.between(ahora, registro.venceEn()));
+            throw ErrorNegocio.demasiadosIntentos("Demasiados intentos fallidos.",
+                    Duration.between(ahora, registro.venceEn()));
         }
     }
 
@@ -70,14 +70,5 @@ public class LimiteIntentosLogin {
 
     int registrados() {
         return registros.size();
-    }
-
-    private static ErrorNegocio bloqueada(Duration falta) {
-        long segundos = Math.max(1, (falta.toMillis() + 999) / 1000);
-        long minutos = (segundos + 59) / 60;
-        String cuando = minutos == 1 ? "1 minuto" : minutos + " minutos";
-        return new ErrorNegocio(CodigoError.DEMASIADOS_INTENTOS,
-                "Demasiados intentos fallidos. Probá de nuevo en " + cuando + ".",
-                Map.of(ErrorNegocio.REINTENTAR_EN_SEGUNDOS, segundos));
     }
 }

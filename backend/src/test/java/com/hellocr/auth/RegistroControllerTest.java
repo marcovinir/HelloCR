@@ -116,6 +116,7 @@ class RegistroControllerTest extends PruebaIntegracion {
     void registrarseDeNuevoConUnCorreoSinVerificarReemplazaLaCuentaVieja() throws Exception {
         registrar("ana@correo.cr", "ana", "Ana", CLAVE).andExpect(status().isCreated());
         String tokenViejo = tokenDelCorreo("ana@correo.cr");
+        reloj.avanzar(Duration.ofMinutes(1));
 
         registrar("ana@correo.cr", "ana_mora", "Ana Mora", "otra-clave-123").andExpect(status().isCreated());
 
@@ -124,6 +125,22 @@ class RegistroControllerTest extends PruebaIntegracion {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.usuario.nombreUsuario").value("ana_mora"));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM usuarios", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void registrarseDeNuevoAntesDeUnMinutoNoMandaOtroCorreo() throws Exception {
+        registrar("ana@correo.cr", "ana", "Ana", CLAVE).andExpect(status().isCreated());
+
+        registrar("ana@correo.cr", "ana", "Ana", CLAVE)
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.codigo").value("DEMASIADOS_INTENTOS"))
+                .andExpect(jsonPath("$.detail").value("Ya te mandamos un correo hace poco. Probá de nuevo en 1 minuto."))
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "60"));
+        assertThat(buzon.para("ana@correo.cr")).hasSize(1);
+
+        reloj.avanzar(Duration.ofMinutes(1));
+        registrar("ana@correo.cr", "ana", "Ana", CLAVE).andExpect(status().isCreated());
+        assertThat(buzon.para("ana@correo.cr")).hasSize(2);
     }
 
     @Test
@@ -140,7 +157,7 @@ class RegistroControllerTest extends PruebaIntegracion {
         List<Integer> estados = enParalelo(6,
                 () -> registrar("ana@correo.cr", "ana", "Ana", CLAVE).andReturn().getResponse().getStatus());
 
-        assertThat(estados).allMatch(estado -> estado == 201 || estado == 409).contains(201);
+        assertThat(estados).allMatch(estado -> estado == 201 || estado == 409 || estado == 429).contains(201);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM usuarios", Integer.class)).isEqualTo(1);
     }
 
