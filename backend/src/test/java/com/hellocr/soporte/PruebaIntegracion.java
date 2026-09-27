@@ -1,5 +1,8 @@
 package com.hellocr.soporte;
 
+import com.hellocr.usuarios.GeneradorCodigos;
+import com.hellocr.usuarios.Usuario;
+import com.hellocr.usuarios.UsuarioRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,6 +18,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,7 +30,10 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(PruebasConfig.class)
 public abstract class PruebaIntegracion {
 
+    public static final String CLAVE = "clave12345";
+
     private static final String TABLAS = "tokens_correo, refresh_tokens, usuarios";
+    private static final PasswordEncoder CODIFICADOR = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
     @Autowired
     protected MockMvc mvc;
@@ -33,11 +41,33 @@ public abstract class PruebaIntegracion {
     protected JdbcTemplate jdbc;
     @Autowired
     protected RelojAjustable reloj;
+    @Autowired
+    private UsuarioRepository usuarios;
+    @Autowired
+    private GeneradorCodigos codigos;
 
     @BeforeEach
     void reiniciarEstado() {
         reloj.reiniciar();
         jdbc.execute("TRUNCATE " + TABLAS + " RESTART IDENTITY CASCADE");
+    }
+
+    /** Cuenta verificada con correo <nombreUsuario>@correo.cr y contraseña CLAVE. */
+    protected Usuario crearUsuario(String nombreUsuario) {
+        return guardar(nombreUsuario, true);
+    }
+
+    protected Usuario crearUsuarioSinVerificar(String nombreUsuario) {
+        return guardar(nombreUsuario, false);
+    }
+
+    private Usuario guardar(String nombreUsuario, boolean verificado) {
+        Usuario usuario = new Usuario(nombreUsuario + "@correo.cr", nombreUsuario, "Usuario " + nombreUsuario,
+                CODIFICADOR.encode(CLAVE), codigos.codigoInvitacion(), reloj.instant());
+        if (verificado) {
+            usuario.verificarCorreo(reloj.instant());
+        }
+        return usuarios.save(usuario);
     }
 
     /** Lanza las tareas en hilos distintos, todas a la vez, y devuelve sus resultados en orden. */
