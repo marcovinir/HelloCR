@@ -41,6 +41,8 @@ public class SecurityConfig {
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(rutas -> rutas
                         .requestMatchers(HttpMethod.POST, PREFIJO_AUTH + "**").permitAll()
+                        // El navegador no puede mandar headers en el handshake: el token viaja en el CONNECT de STOMP.
+                        .requestMatchers("/ws").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(recursos -> recursos
