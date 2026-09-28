@@ -1,6 +1,7 @@
 package com.hellocr.tiempoReal;
 
 import com.hellocr.conversaciones.ConsultaMembresia;
+import com.hellocr.conversaciones.ConversacionActualizada;
 import com.hellocr.mensajes.EstadoActualizado;
 import com.hellocr.mensajes.MensajeDto;
 import com.hellocr.mensajes.MensajeEnviado;
@@ -33,5 +34,12 @@ public class EntregaTiempoReal {
     public void alActualizarEstado(EstadoActualizado evento) {
         EventoEstado estado = new EventoEstado(evento);
         membresia.miembrosActivos(evento.conversacionId()).forEach(usuario -> enviador.enviar(usuario, estado));
+    }
+
+    /** A los afectados por el cambio, incluidos quien entró y quien salió. */
+    @TransactionalEventListener
+    public void alActualizarConversacion(ConversacionActualizada evento) {
+        EventoConversacion aviso = new EventoConversacion(evento.conversacionId());
+        evento.afectados().forEach(usuario -> enviador.enviar(usuario, aviso));
     }
 }
