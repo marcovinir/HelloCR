@@ -8,7 +8,7 @@ estados de entrega, presencia y notificaciones push.
 
 | Carpeta | Tecnología |
 |---|---|
-| `backend/` | Java 25 · Spring Boot 4 · Maven · PostgreSQL 18 · Flyway |
+| `backend/` | Java 25 · Spring Boot 4 · Maven · PostgreSQL 18 · Flyway · WebSocket/STOMP |
 | `frontend/` | React · TypeScript · Vite · PWA *(plan 4)* |
 
 ## Requisitos
@@ -48,6 +48,20 @@ cd backend
 
 La API queda en `http://localhost:8080/api`.
 
+## Tiempo real
+
+Los mensajes viajan por STOMP sobre WebSocket en `ws://localhost:8080/ws`:
+
+- **Conectar:** frame `CONNECT` con el header `Authorization: Bearer <accessToken>`, y suscribirse a
+  `/user/queue/eventos`, donde llega todo: `MENSAJE_NUEVO`, `ESTADO_ACTUALIZADO`, `ESCRIBIENDO`, `PRESENCIA`,
+  `CONVERSACION_ACTUALIZADA` y `ERROR`.
+- **Enviar:** `/app/mensajes.enviar` `{idCliente, conversacionId, texto}`; acuses en `/app/mensajes.entregados` y
+  `/app/mensajes.leidos` `{conversacionId, hastaSecuencia}`; "escribiendo…" en `/app/escribiendo`
+  `{conversacionId}`; y `/app/sesion.renovar` con el header `Authorization: Bearer <accessToken nuevo>` antes
+  de que venza el del `CONNECT` (si vence, el servidor cierra la conexión).
+- **Leer:** el historial y la lista de chats se piden por REST: `GET /api/conversaciones` y
+  `GET /api/conversaciones/{id}/mensajes?antesDe=&despuesDe=&limite=`.
+
 ## Tests
 
 ```bash
@@ -55,4 +69,5 @@ cd backend
 ./mvnw test
 ```
 
-Corren contra la base `hellocr_test`, que se vacía antes de cada test.
+Corren contra la base `hellocr_test`, que se vacía antes de cada test. Los de tiempo real levantan el servidor en
+un puerto aleatorio y se conectan con un cliente STOMP de verdad.
