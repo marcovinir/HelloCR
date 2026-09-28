@@ -29,6 +29,7 @@ public class AutenticacionStomp implements ChannelInterceptor {
     static final Set<String> DESTINOS_PERMITIDOS = Set.of("/app/mensajes.enviar", "/app/mensajes.entregados",
             "/app/mensajes.leidos", "/app/escribiendo", "/app/sesion.renovar");
     private static final String PREFIJO_BEARER = "Bearer ";
+    private static final String FALTA_TOKEN = "Falta el token o no es válido.";
 
     private final JwtDecoder decoder;
     private final MessageChannel salida;
@@ -46,19 +47,29 @@ public class AutenticacionStomp implements ChannelInterceptor {
         if (acceso == null || acceso.getCommand() == null) {
             return mensaje;
         }
-        String rechazo = switch (acceso.getCommand()) {
+        StompCommand comando = acceso.getCommand();
+        String rechazo = switch (comando) {
             case CONNECT, STOMP -> autenticar(acceso);
-            case SUBSCRIBE -> COLA_EVENTOS.equals(acceso.getDestination()) ? null
-                    : "Solo podés suscribirte a " + COLA_EVENTOS + ".";
-            case SEND -> acceso.getDestination() != null && DESTINOS_PERMITIDOS.contains(acceso.getDestination())
-                    ? null : "Ese destino no existe.";
-            default -> null;
+            case DISCONNECT -> null;
+            // Los frames que vienen detrás de un CONNECT rechazado llegan acá antes de que se cierre la conexión.
+            default -> acceso.getUser() instanceof UsuarioStomp ? autorizar(acceso) : FALTA_TOKEN;
         };
         if (rechazo == null) {
             return mensaje;
         }
         rechazar(acceso.getSessionId(), rechazo);
         return null;
+    }
+
+    /** Destinos permitidos para una sesión autenticada. */
+    private static String autorizar(StompHeaderAccessor acceso) {
+        return switch (acceso.getCommand()) {
+            case SUBSCRIBE -> COLA_EVENTOS.equals(acceso.getDestination()) ? null
+                    : "Solo podés suscribirte a " + COLA_EVENTOS + ".";
+            case SEND -> acceso.getDestination() != null && DESTINOS_PERMITIDOS.contains(acceso.getDestination())
+                    ? null : "Ese destino no existe.";
+            default -> null;
+        };
     }
 
     /** Valida "Bearer <jwt>" con el mismo JwtDecoder de la API (vigencia y emisor). */
@@ -77,7 +88,7 @@ public class AutenticacionStomp implements ChannelInterceptor {
     private String autenticar(StompHeaderAccessor acceso) {
         Optional<Jwt> jwt = decodificar(acceso.getFirstNativeHeader(HttpHeaders.AUTHORIZATION));
         if (jwt.isEmpty()) {
-            return "Falta el token o no es válido.";
+            return FALTA_TOKEN;
         }
         acceso.setUser(new UsuarioStomp(UsuarioAutenticado.id(jwt.get()), jwt.get().getExpiresAt()));
         return null;
