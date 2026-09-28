@@ -2,6 +2,7 @@ package com.hellocr.grupos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -155,6 +156,24 @@ class MiembrosGrupoTest extends PruebaIntegracion {
 
         assertThat(mensajes(ana)).extracting(m -> m.evento().evento())
                 .containsExactly("GRUPO_CREADO", "ADMIN_ASIGNADO", "ADMIN_QUITADO");
+    }
+
+    @Test
+    void unExMiembroVeElGrupoComoEstabaCuandoSalio() throws Exception {
+        quitar(ana, luis);
+        agregar(ana, sofia);
+        enviar(ana, "sin Luis");
+
+        mvc.perform(get("/api/conversaciones/" + grupo).with(con(luis)))
+                .andExpect(jsonPath("$.miembros[*].usuario.nombreUsuario").value(contains("ana", "luis")))
+                .andExpect(jsonPath("$.miembros[0].periodos[0].desde").value(1))
+                .andExpect(jsonPath("$.miembros[0].periodos[0].hasta").value(nullValue()))
+                .andExpect(jsonPath("$.miembros[0].ultimaEntregada").value(2))
+                .andExpect(jsonPath("$.miembros[0].ultimaLeida").value(2))
+                .andExpect(jsonPath("$.miembros[1].periodos[0].hasta").value(2));
+        mvc.perform(get("/api/conversaciones/" + grupo).with(con(ana)))
+                .andExpect(jsonPath("$.miembros[*].usuario.nombreUsuario").value(contains("ana", "luis", "sofia")))
+                .andExpect(jsonPath("$.miembros[0].ultimaLeida").value(4));
     }
 
     @Test

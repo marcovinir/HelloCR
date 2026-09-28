@@ -69,8 +69,34 @@ public class LecturaConversacionesService {
                 .list();
         MiembroDetalle propio = miembros.stream().filter(m -> m.usuario().id().equals(yo)).findFirst().orElseThrow();
         boolean activa = propio.periodos().stream().anyMatch(periodo -> periodo.hasta() == null);
+        if (!activa) {
+            long salida = propio.periodos().stream().mapToLong(Periodo::hasta).max().orElse(0);
+            miembros = comoEstabaHasta(miembros, salida);
+        }
         return new ConversacionDetalle(conversacionId, cabecera.tipo(), titulo(cabecera, miembros, yo),
                 cabecera.descripcion(), activa, propio.rol(), miembros);
+    }
+
+    /**
+     * Lo que ve un ex miembro: el grupo como estaba hasta su salida. Quien entró después no aparece, los periodos
+     * que seguían abiertos en esa secuencia se muestran abiertos y las marcas no pasan de ahí. Le alcanza para
+     * calcular el estado de sus propios mensajes (spec 8.3), que son todos anteriores.
+     */
+    private static List<MiembroDetalle> comoEstabaHasta(List<MiembroDetalle> miembros, long salida) {
+        List<MiembroDetalle> visibles = new ArrayList<>();
+        for (MiembroDetalle miembro : miembros) {
+            List<Periodo> periodos = miembro.periodos().stream()
+                    .filter(periodo -> periodo.desde() <= salida)
+                    .map(periodo -> periodo.hasta() != null && periodo.hasta() <= salida ? periodo
+                            : new Periodo(periodo.desde(), null))
+                    .toList();
+            if (!periodos.isEmpty()) {
+                visibles.add(new MiembroDetalle(miembro.usuario(), miembro.rol(),
+                        Math.min(miembro.ultimaEntregada(), salida), Math.min(miembro.ultimaLeida(), salida),
+                        periodos));
+            }
+        }
+        return visibles;
     }
 
     /** El nombre del grupo, o el nombre visible de la otra persona en un chat directo. */
