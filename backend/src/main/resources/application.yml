@@ -31,4 +31,11 @@ app:
   login:
     max-intentos: 5
     bloqueo: 15m
+  mensajes:
+    limite-cantidad: 30
+    limite-ventana: 10s
+  grupos:
+    max-miembros: 50
+  tiempo-real:
+    latido: 10s
 # Credenciales de la base y app.jwt.secreto van en application-local.yml (ignorado por git).

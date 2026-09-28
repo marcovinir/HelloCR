@@ -9,3 +9,6 @@ app:
     secreto: secreto-solo-para-pruebas-con-mas-de-32-caracteres
   correo:
     asincrono: false
+  grupos:
+    # Chico a propósito: así los tests de GRUPO_LLENO no necesitan 50 cuentas.
+    max-miembros: 5
