@@ -2,6 +2,7 @@ package com.hellocr.conversaciones;
 
 import com.hellocr.comun.UsuarioAutenticado;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +21,18 @@ public class ConversacionController {
 
     private final ChatDirectoService chats;
     private final LecturaConversacionesService lectura;
+    private final ListaConversacionesService lista;
 
-    public ConversacionController(ChatDirectoService chats, LecturaConversacionesService lectura) {
+    public ConversacionController(ChatDirectoService chats, LecturaConversacionesService lectura,
+            ListaConversacionesService lista) {
         this.chats = chats;
         this.lectura = lectura;
+        this.lista = lista;
+    }
+
+    @GetMapping
+    public List<ConversacionResumen> lista(@AuthenticationPrincipal Jwt jwt) {
+        return lista.de(UsuarioAutenticado.id(jwt));
     }
 
     @PostMapping("/directas")
