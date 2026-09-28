@@ -39,7 +39,8 @@ public abstract class PruebaIntegracion {
 
     public static final String CLAVE = "clave12345";
 
-    private static final String TABLAS = "tokens_correo, refresh_tokens, usuarios";
+    /** CASCADE vacía también miembros, periodos, mensajes, eventos, chats directos y grupos. */
+    private static final String TABLAS = "tokens_correo, refresh_tokens, conversaciones, usuarios";
     private static final PasswordEncoder CODIFICADOR = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
     @Autowired
